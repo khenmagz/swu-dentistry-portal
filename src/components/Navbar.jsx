@@ -9,14 +9,14 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [dropdownForms, setDropdownForms] = useState([]);
 
-  // New States for Mobile Menu
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileFormsOpen, setIsMobileFormsOpen] = useState(false); // Controls the accordion for forms on mobile
+  const [isMobileFormsOpen, setIsMobileFormsOpen] = useState(false);
 
+  // FIX: Changed md:inline-block to lg:inline-block
   const linkClass = ({ isActive }) =>
     isActive
-      ? "text-(--color-accent) font-bold px-3 py-2 block md:inline-block"
-      : "text-white font-bold hover:text-gray-300 px-3 py-2 transition-colors block md:inline-block";
+      ? "text-(--color-accent) font-bold px-3 py-2 block lg:inline-block"
+      : "text-white font-bold hover:text-gray-300 px-3 py-2 transition-colors block lg:inline-block";
 
   const handleLogout = async () => {
     try {
@@ -27,7 +27,6 @@ export default function Navbar() {
     }
   };
 
-  // Close mobile menu when a link is clicked
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
     setIsMobileFormsOpen(false);
@@ -49,11 +48,13 @@ export default function Navbar() {
   return (
     <div className="bg-(--color-secondary) w-full relative">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between md:justify-center h-14">
-          {/* Hamburger Menu Button (Visible ONLY on Mobile) */}
+        {/* FIX: Changed md:justify-center to lg:justify-center */}
+        <div className="flex items-center justify-between lg:justify-center h-14">
+          {/* Hamburger Menu Button */}
+          {/* FIX: Changed md:hidden to lg:hidden */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden text-white hover:text-gray-300 focus:outline-none p-2"
+            className="lg:hidden text-white hover:text-gray-300 focus:outline-none p-2"
           >
             <svg
               className="w-6 h-6"
@@ -67,20 +68,21 @@ export default function Navbar() {
                   strokeLinejoin="round"
                   strokeWidth="2"
                   d="M6 18L18 6M6 6l12 12"
-                /> // X icon
+                />
               ) : (
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
                   d="M4 6h16M4 12h16M4 18h16"
-                /> // Hamburger icon
+                />
               )}
             </svg>
           </button>
 
-          {/* DESKTOP MENU (Hidden on Mobile) */}
-          <div className="hidden md:flex items-center space-x-4 lg:space-x-8 text-sm md:text-base">
+          {/* DESKTOP MENU */}
+          {/* FIX: Changed hidden md:flex to hidden lg:flex */}
+          <div className="hidden lg:flex items-center space-x-2 xl:space-x-8 text-sm xl:text-base">
             <NavLink to="/" className={linkClass}>
               Home
             </NavLink>
@@ -100,7 +102,6 @@ export default function Navbar() {
               Tutorials
             </NavLink>
 
-            {/* Desktop Forms Dropdown (Hover based) */}
             <div className="relative group">
               <Link
                 to="/forms"
@@ -149,8 +150,9 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile Log Out Button (Just so it's easily accessible) */}
-          <div className="md:hidden">
+          {/* Mobile Log Out Button */}
+          {/* FIX: Changed md:hidden to lg:hidden */}
+          <div className="lg:hidden">
             <button
               onClick={handleLogout}
               className="text-xs bg-(--color-accent) text-white px-3 py-1.5 rounded hover:opacity-90"
@@ -160,9 +162,10 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* MOBILE MENU (Visible ONLY when Hamburger is clicked) */}
+        {/* MOBILE MENU CONTENT */}
+        {/* FIX: Changed md:hidden to lg:hidden */}
         {isMobileMenuOpen && (
-          <div className="md:hidden pb-4 pt-2 border-t border-gray-700 absolute top-14 left-0 w-full bg-(--color-secondary) z-50 shadow-xl">
+          <div className="lg:hidden pb-4 pt-2 border-t border-gray-700 absolute top-14 left-0 w-full bg-(--color-secondary) z-50 shadow-xl">
             <div className="flex flex-col space-y-1 px-4">
               <NavLink to="/" onClick={closeMobileMenu} className={linkClass}>
                 Home
@@ -203,7 +206,6 @@ export default function Navbar() {
                 Tutorials
               </NavLink>
 
-              {/* Mobile Forms Accordion */}
               <div className="w-full">
                 <button
                   onClick={() => setIsMobileFormsOpen(!isMobileFormsOpen)}
@@ -217,7 +219,6 @@ export default function Navbar() {
                   )}
                 </button>
 
-                {/* Expandable list for mobile forms */}
                 {isMobileFormsOpen && (
                   <div className="bg-gray-800 rounded-lg mx-2 mt-1 py-2 mb-2">
                     <Link
