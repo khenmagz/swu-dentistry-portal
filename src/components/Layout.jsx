@@ -29,7 +29,7 @@ export default function Layout() {
               <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-semibold tracking-tight">
                 SWU
               </h1>
-              <span className="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-semibold text-white/50">
+              <span className="md:mb-4 text-4xl sm:mb-2 sm:text-5xl md:text-7xl lg:text-9xl font-semibold text-white/50">
                 |
               </span>
               <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-semibold tracking-wide">

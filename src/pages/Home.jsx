@@ -118,10 +118,9 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
   };
 
   return (
-    // 1. THE MAIN CONTAINER: 95% opaque white. It reads as solid, but lets just a tiny fraction
-    // of the background bleed through so it doesn't look like a harsh "sticker" on the page.
+    // 1. THE MAIN CONTAINER
     <div className="bg-white/70 rounded-b-4xl shadow-md mb-10 overflow-hidden border border-gray-200">
-      {/* 2. STRUCTURED HEADER: Uses a thick left accent line instead of a background color */}
+      {/* 2. STRUCTURED HEADER */}
       <div className="px-6 pt-6 pb-4 border-b bg-gray-100 border-gray-100 flex justify-between items-start">
         <div className="border-l-4 border-(--color-primary) pl-4">
           <h3 className="font-extrabold text-gray-900 text-xl uppercase tracking-wide">
@@ -145,55 +144,65 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
       </div>
 
       {/* POST BODY */}
-      <div className="px-6 py-6 w-full overflow-hidden">
+      <div className="px-6 py-6 w-full min-w-0 overflow-hidden">
         <div
-          className="text-gray-800 text-md leading-relaxed w-full wrap-break-word 
-               **:bg-transparent! 
-               [&_p]:bg-transparent!
-               [&_span]:bg-transparent!
-               [&_p]:mb-4 last:[&_p]:mb-0 [&_p]:min-h-6
-               [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-4
-               [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-4
-               [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-3
-               [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3
-               [&_a]:text-(--color-primary) [&_a]:underline [&_a]:font-semibold"
-          dangerouslySetInnerHTML={{ __html: post.text }}
+          className="text-gray-800 text-md leading-relaxed w-full wrap-break-word whitespace-pre-wrap
+                **:bg-transparent! 
+                [&_p]:bg-transparent!
+                [&_span]:bg-transparent!
+                [&_p]:mb-4 last:[&_p]:mb-0 [&_p]:min-h-6
+                [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-4
+                [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-4
+                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-3
+                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3
+                [&_a]:text-(--color-primary) [&_a]:underline [&_a]:font-semibold
+                [&_.ql-align-center]:text-center
+                [&_.ql-align-right]:text-right
+                [&_.ql-align-justify]:text-justify
+                [&_.ql-align-left]:text-left"
+          dangerouslySetInnerHTML={{
+            __html: post.text ? post.text.replace(/&nbsp;/g, " ") : "",
+          }}
         />
 
         {/* ATTACHMENT DISPLAY */}
         {post.fileUrl && (
-          <div className="mt-6 border border-gray-200 rounded-lg p-3 bg-white flex flex-col items-start sm:flex-row sm:items-center gap-4 shadow-sm">
+          <div className="mt-6">
             {post.fileUrl.includes(".pdf") ? (
-              <img
-                src={post.fileUrl.replace(".pdf", ".jpg")}
-                alt="Document"
-                className="w-16 h-16 object-cover rounded border border-gray-200"
-              />
+              <div className="border border-gray-200 rounded-lg p-3 bg-white flex flex-col items-start sm:flex-row sm:items-center gap-4 shadow-sm">
+                <img
+                  src={post.fileUrl.replace(".pdf", ".jpg")}
+                  alt="Document"
+                  className="w-16 h-16 object-cover rounded border border-gray-200"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    Attached Document
+                  </p>
+                  <a
+                    href={post.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-(--color-primary) font-bold hover:underline mt-1 inline-block"
+                  >
+                    View Attachment &rarr;
+                  </a>
+                </div>
+              </div>
             ) : (
-              <img
-                src={post.fileUrl}
-                alt="Attachment"
-                className="w-16 h-16 object-cover rounded border border-gray-200"
-              />
+              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                <img
+                  src={post.fileUrl}
+                  alt="Attachment"
+                  className="w-full h-auto object-cover"
+                />
+              </div>
             )}
-            <div>
-              <p className="text-sm font-semibold text-gray-800">
-                Attached Document
-              </p>
-              <a
-                href={post.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-(--color-primary) font-bold hover:underline mt-1 inline-block"
-              >
-                View Attachment &rarr;
-              </a>
-            </div>
           </div>
         )}
       </div>
 
-      {/* 3. STRUCTURED COMMENTS ZONE: Shifted background color to separate it from the main post */}
+      {/* 3. STRUCTURED COMMENTS ZONE */}
       {post.allowComments && (
         <div className="bg-gray-50/80 px-6 py-6 border-t border-gray-200">
           {hasMore && comments.length >= 3 && (
@@ -218,7 +227,7 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
               ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
               return (
-                // 4. DISTINCT COMMENT BOXES: Each comment is a structured card of its own
+                // 4. DISTINCT COMMENT BOXES
                 <div
                   key={comment.id}
                   className="bg-white border border-gray-200 rounded-lg p-4 flex gap-3 shadow-sm group relative"
@@ -253,7 +262,7 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
             })}
           </div>
 
-          {/* 5. STRUCTURED INPUT: A solid, recognizable box, not a pill */}
+          {/* 5. STRUCTURED INPUT */}
           <form
             onSubmit={handleAddComment}
             className="flex gap-3 items-start bg-white border border-gray-300 rounded-lg p-2 focus-within:border-(--color-primary) focus-within:ring-1 focus-within:ring-(--color-primary) transition shadow-sm"
@@ -299,6 +308,18 @@ const Home = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // QUILL MODULES CONFIGURATION - ADDED FOR ALIGNMENT
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, false] }],
+      ["bold", "italic", "underline", "strike", "blockquote"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [{ align: [] }], // This adds Left, Center, Right, and Justify buttons!
+      ["link"],
+      ["clean"],
+    ],
+  };
 
   useEffect(() => {
     const q = query(
@@ -417,6 +438,7 @@ const Home = () => {
                 theme="snow"
                 value={postText}
                 onChange={setPostText}
+                modules={quillModules} // UPDATED HERE to apply alignment options
                 placeholder="Type the details of your announcement here..."
               />
             </div>

@@ -95,9 +95,9 @@ export default function Navbar() {
             <NavLink to="/organizational-chart" className={linkClass}>
               Organizational Chart
             </NavLink>
-            <NavLink to="/students" className={linkClass}>
+            {/* <NavLink to="/students" className={linkClass}>
               List of Students
-            </NavLink>
+            </NavLink>*/}
             <NavLink to="/tutorials" className={linkClass}>
               Tutorials
             </NavLink>

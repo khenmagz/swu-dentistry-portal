@@ -49,7 +49,7 @@ export default function App() {
             path="organizational-chart"
             element={<OrganizationalChart />}
           />
-          <Route path="students" element={<Students />} />
+          {/*  <Route path="students" element={<Students />} />*/}
           <Route path="tutorials" element={<Tutorials />} />
           <Route path="forms" element={<Forms />} />
           <Route path="forms/:id" element={<FormView />} />
