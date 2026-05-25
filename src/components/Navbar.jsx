@@ -191,13 +191,13 @@ export default function Navbar() {
               >
                 Organizational Chart
               </NavLink>
-              <NavLink
+              {/*<NavLink
                 to="/students"
                 onClick={closeMobileMenu}
                 className={linkClass}
               >
                 List of Students
-              </NavLink>
+              </NavLink>*/}
               <NavLink
                 to="/tutorials"
                 onClick={closeMobileMenu}
