@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Auth & Protection
 import ProtectedRoute from "./components/ProtectedRoute";
-import PublicRoute from "./components/PublicRoute"; // 1. Import the new bouncer
+import PublicRoute from "./components/PublicRoute";
 import Login from "./pages/Login";
 
 // Layout
@@ -13,7 +13,6 @@ import Home from "./pages/Home";
 import Calendar from "./pages/Calendar";
 import RoomAssignment from "./pages/RoomAssignment";
 import OrganizationalChart from "./pages/OrganizationalChart";
-import Students from "./pages/StudentLists";
 import Tutorials from "./pages/Tutorials";
 import Forms from "./pages/Forms";
 import FormView from "./pages/FormView";
@@ -23,7 +22,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* PUBLIC ROUTE: Wrapped in the Reverse Bouncer */}
+        {/* PUBLIC ROUTE */}
         <Route
           path="/login"
           element={
@@ -33,7 +32,7 @@ export default function App() {
           }
         />
 
-        {/* PROTECTED ROUTES: Wrapped in the regular Bouncer */}
+        {/* PROTECTED ROUTES */}
         <Route
           path="/"
           element={
@@ -49,9 +48,9 @@ export default function App() {
             path="organizational-chart"
             element={<OrganizationalChart />}
           />
-          {/*  <Route path="students" element={<Students />} />*/}
           <Route path="tutorials" element={<Tutorials />} />
           <Route path="forms" element={<Forms />} />
+          <Route path="forms/category/:categoryName" element={<Forms />} />
           <Route path="forms/:id" element={<FormView />} />
           <Route path="add-user" element={<AddUser />} />
         </Route>

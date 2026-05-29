@@ -143,17 +143,35 @@ const OrganizationalChart = () => {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col items-center">
-          <p className="text-xs text-gray-400 w-full text-right mb-2">
-            Last updated: {new Date(chartData.updatedAt).toLocaleDateString()}
-          </p>
+          <div className="w-full flex justify-between items-center mb-4">
+            <p className="text-xs text-gray-400">
+              Last updated: {new Date(chartData.updatedAt).toLocaleDateString()}
+            </p>
+            {/* Download / View Full Button */}
+            <a
+              href={chartData.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs md:text-sm bg-(--color-primary) text-white px-3 py-1.5 md:px-4 md:py-2 rounded shadow hover:opacity-90 transition font-bold"
+            >
+              View Full Size
+            </a>
+          </div>
 
-          {/* THE "NOT DOWNLOADABLE" IMAGE TRICK */}
-          <img
-            src={displayUrl}
-            alt="Organizational Chart"
-            onContextMenu={(e) => e.preventDefault()} // Disables Right-Click
-            className="max-w-full h-auto rounded shadow-sm border border-gray-100 pointer-events-none" // pointer-events-none disables drag-to-desktop
-          />
+          {/* Clickable Image linking to the original file */}
+          <a
+            href={chartData.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cursor-pointer w-full flex justify-center hover:opacity-95 transition"
+            title="Click to view full attachment"
+          >
+            <img
+              src={displayUrl}
+              alt="Organizational Chart"
+              className="max-w-full h-auto rounded shadow-sm border border-gray-100"
+            />
+          </a>
         </div>
       )}
     </div>

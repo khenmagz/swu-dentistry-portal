@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { Link, useParams } from "react-router-dom";
 import { db } from "../firebase";
 import {
   collection,
@@ -10,29 +11,26 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { Link } from "react-router-dom";
 
-// --- CONFIGURATION ---
 const CLOUDINARY_CLOUD_NAME = "damg32ari";
 const CLOUDINARY_UPLOAD_PRESET = "school_portal_preset";
 const MAX_FILE_SIZE_MB = 10;
-// ---------------------
 
 const Forms = () => {
   const { userRole } = useAuth();
   const isAdmin = userRole === "admin";
+  const { categoryName } = useParams();
 
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Upload States
   const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // 1. Fetch forms from Firebase
   useEffect(() => {
     const q = query(collection(db, "forms"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -46,7 +44,21 @@ const Forms = () => {
     return () => unsubscribe();
   }, []);
 
-  // 2. Handle Form Upload (Admin Only)
+  const uniqueCategories = [
+    ...new Set(forms.map((form) => form.category || "General")),
+  ].sort();
+
+  const groupedForms = forms.reduce((acc, form) => {
+    const cat = form.category || "General";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(form);
+    return acc;
+  }, {});
+
+  const categoriesToRender = categoryName
+    ? Object.keys(groupedForms).filter((cat) => cat === categoryName)
+    : Object.keys(groupedForms).sort();
+
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!selectedFile || !title) {
@@ -79,6 +91,7 @@ const Forms = () => {
       if (uploadedFile.secure_url) {
         await addDoc(collection(db, "forms"), {
           title: title,
+          category: category.trim() || "General",
           url: uploadedFile.secure_url,
           filename: selectedFile.name,
           createdAt: new Date().toISOString(),
@@ -86,6 +99,7 @@ const Forms = () => {
 
         setMessage("Form uploaded successfully!");
         setTitle("");
+        setCategory("");
         setSelectedFile(null);
         setTimeout(() => setMessage(""), 3000);
       } else {
@@ -99,7 +113,6 @@ const Forms = () => {
     }
   };
 
-  // 3. Handle Delete (Admin Only)
   const handleDelete = async (id, formTitle) => {
     if (!window.confirm(`Are you sure you want to delete the "${formTitle}"?`))
       return;
@@ -122,7 +135,7 @@ const Forms = () => {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-(--color-primary)">
-          Forms Directory
+          {categoryName ? `${categoryName} Directory` : "Forms Directory"}
         </h1>
         {isAdmin && (
           <span className="bg-(--color-accent) text-(--color-background) px-3 py-1 rounded text-sm">
@@ -131,25 +144,38 @@ const Forms = () => {
         )}
       </div>
 
-      {/* ADMIN UPLOAD SECTION */}
-      {isAdmin && (
+      {isAdmin && !categoryName && (
         <div className="bg-(--color-surface) p-6 rounded shadow mb-8 border border-gray-200">
           <h2 className="text-lg font-semibold mb-4 text-(--color-primary)">
             Upload New Form
           </h2>
-
           <form onSubmit={handleUpload} className="flex flex-col gap-4">
-            <input
-              type="text"
-              placeholder="Form Title (e.g., Registration Form)"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              disabled={uploading}
-              className="p-3 border border-gray-300 rounded focus:outline-none focus:border-(--color-primary)"
-              required
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Form Title (e.g., Summer Registration)"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={uploading}
+                className="p-3 border border-gray-300 rounded focus:outline-none focus:border-(--color-primary) w-full"
+                required
+              />
+              <input
+                type="text"
+                list="category-options"
+                placeholder="Category (e.g., Guidelines)"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                disabled={uploading}
+                className="p-3 border border-gray-300 rounded focus:outline-none focus:border-(--color-primary) w-full"
+              />
+              <datalist id="category-options">
+                {uniqueCategories.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
+            </div>
 
-            {/* DRAG & DROP ZONE */}
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -215,52 +241,62 @@ const Forms = () => {
         </div>
       )}
 
-      {/* FORMS DIRECTORY LIST */}
-      <div className="bg-(--color-background) p-6 rounded shadow border border-gray-200">
-        <h2 className="text-xl font-bold mb-4 text-(--color-primary)">
-          Available Forms
-        </h2>
-        {forms.length === 0 ? (
-          <p className="text-(--color-secondary)">
-            No forms have been uploaded yet.
-          </p>
+      <div className="space-y-8">
+        {categoriesToRender.length === 0 ? (
+          <div className="bg-(--color-background) p-6 rounded shadow border border-gray-200">
+            <p className="text-(--color-secondary)">
+              {categoryName
+                ? `No forms found in "${categoryName}".`
+                : "No forms have been uploaded yet."}
+            </p>
+          </div>
         ) : (
-          <ul className="space-y-3">
-            {forms.map((form) => (
-              <li
-                key={form.id}
-                className="flex justify-between items-center p-4 border border-gray-200 rounded hover:bg-gray-50 transition"
-              >
-                <div>
-                  <h3 className="font-semibold text-lg text-(--color-primary)">
-                    {form.title}
-                  </h3>
-                  <p className="text-xs text-(--color-secondary)">
-                    Added: {new Date(form.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  {/* This link will point to our new FormView page! */}
-                  <Link
-                    to={`/forms/${form.id}`}
-                    className="bg-(--color-primary) text-(--color-background) px-4 py-2 rounded hover:opacity-90 transition text-sm font-semibold"
+          categoriesToRender.map((catName) => (
+            <div
+              key={catName}
+              className="bg-(--color-background) p-6 rounded shadow border border-gray-200"
+            >
+              <div className="border-b border-gray-200 pb-2 mb-4">
+                <h2 className="text-xl font-bold text-(--color-primary) uppercase tracking-wide">
+                  {catName}
+                </h2>
+              </div>
+              <ul className="space-y-3">
+                {groupedForms[catName].map((form) => (
+                  <li
+                    key={form.id}
+                    className="flex justify-between items-center p-4 border border-gray-200 rounded hover:bg-gray-50 transition"
                   >
-                    View Form
-                  </Link>
-
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleDelete(form.id, form.title)}
-                      className="text-(--color-accent) text-sm font-semibold hover:underline"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+                    <div>
+                      <h3 className="font-semibold text-lg text-(--color-primary)">
+                        {form.title}
+                      </h3>
+                      <p className="text-xs text-(--color-secondary)">
+                        Added: {new Date(form.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {/* REDIRECTS TO INTERNAL VIEWER LAYOUT VIEW FOR USER EXPERIENCE */}
+                      <Link
+                        to={`/forms/${form.id}`}
+                        className="bg-(--color-primary) text-(--color-background) px-4 py-2 rounded hover:opacity-90 transition text-sm font-semibold"
+                      >
+                        View Form
+                      </Link>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(form.id, form.title)}
+                          className="text-(--color-accent) text-sm font-semibold hover:underline"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
         )}
       </div>
     </div>

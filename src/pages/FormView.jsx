@@ -4,7 +4,7 @@ import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 const FormView = () => {
-  const { id } = useParams(); // Grabs the form ID from the URL (e.g., /forms/123abc)
+  const { id } = useParams();
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,9 +52,14 @@ const FormView = () => {
 
   const isPdf = formData.url.toLowerCase().includes(".pdf");
 
+  // Securely intercept and convert PDF endpoints into static image previews dynamically via Cloudinary transformations
+  const displayUrl = isPdf
+    ? formData.url.replace(/\.pdf$/i, ".jpg")
+    : formData.url;
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      {/* Top Navigation & Dynamic Title */}
+      {/* Top Navigation & Title */}
       <div className="mb-6">
         <Link
           to="/forms"
@@ -76,22 +81,21 @@ const FormView = () => {
             </p>
           )}
 
-          {/* Cloudinary .jpg magic trick for PDFs, normal display for Images */}
           <img
-            src={formData.url.replace(".pdf", ".jpg")}
+            src={displayUrl}
             alt={formData.title}
-            className="max-w-full h-auto rounded object-contain shadow-sm border border-gray-300"
+            className="max-w-full h-auto max-h-[70vh] rounded object-contain shadow-sm border border-gray-300"
           />
         </div>
 
-        {/* The Bulletproof Fallback */}
+        {/* Action button to open full scrollable attachment in another window */}
         <a
           href={formData.url}
           target="_blank"
           rel="noopener noreferrer"
           className="bg-(--color-primary) text-(--color-background) px-8 py-3 rounded shadow hover:opacity-90 transition font-semibold text-lg text-center"
         >
-          Open Full File
+          {isPdf ? "Open Full PDF Document" : "Open Original Image"}
         </a>
       </div>
     </div>
