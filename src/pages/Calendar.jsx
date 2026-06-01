@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { db } from "../firebase";
 import {
   collection,
@@ -19,7 +19,10 @@ import {
   FiClock,
   FiAlignLeft,
   FiTrash2,
+  FiDownload,
 } from "react-icons/fi";
+import { toPng } from "html-to-image";
+import jsPDF from "jspdf";
 
 export default function Calendar() {
   const { userRole } = useAuth();
@@ -30,6 +33,9 @@ export default function Calendar() {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Reference for the PDF generator
+  const calendarRef = useRef(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -102,17 +108,15 @@ export default function Calendar() {
     return start <= lastDayOfCurrentMonth && end >= firstDayOfCurrentMonth;
   });
 
-  // FIX: Limit summary rows to 3 so it wraps into a new column after the 3rd event
   const summaryRowCount = Math.min(3, Math.max(1, summaryEvents.length));
 
-  // FIX: Removed parentheses from the output
   const getSummaryDateText = (startDate, endDate, title) => {
     const startDay = parseInt(startDate.split("-")[2], 10);
     const endDay = parseInt(endDate.split("-")[2], 10);
     if (startDate === endDate) {
       return `${startDay} ${title}`;
     }
-    return `${startDay}-${endDay} ${title}`;
+    return `${startDay}-${endDay}  ${title}`;
   };
 
   const handleAddEvent = async (e) => {
@@ -149,149 +153,212 @@ export default function Calendar() {
     }
   };
 
+  // UPDATED: Fixed oklch bug using html-to-image
+  const handleDownloadPDF = async () => {
+    if (!calendarRef.current) return;
+    try {
+      const filter = (node) => {
+        if (node.nodeType === 3) return true;
+        if (node.hasAttribute && node.hasAttribute("data-html2canvas-ignore"))
+          return false;
+        return true;
+      };
+
+      const dataUrl = await toPng(calendarRef.current, {
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        filter: filter,
+        style: {
+          margin: "0", // Forces removal of any weird margins during capture
+        },
+      });
+
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      // Define a standard margin (e.g., 10mm)
+      const margin = 10;
+      const pdfPageWidth = pdf.internal.pageSize.getWidth();
+
+      // Calculate width and height accounting for the margins
+      const imageWidth = pdfPageWidth - margin * 2;
+      const imageHeight =
+        (calendarRef.current.offsetHeight * imageWidth) /
+        calendarRef.current.offsetWidth;
+
+      // Center the image horizontally and vertically (or just add top margin)
+      const xOffset = margin;
+      const yOffset = margin;
+
+      pdf.addImage(dataUrl, "PNG", xOffset, yOffset, imageWidth, imageHeight);
+      pdf.save(`Calendar_${monthNames[currentMonth]}_${currentYear}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen text-gray-800">
-      {/* Upper Controls Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold tracking-tight text-white bg-[#4A154B] px-4 py-2 rounded-lg shadow">
-            {monthNames[currentMonth]} {currentYear}
-          </h1>
-          <div className="flex bg-gray-100 rounded-lg p-1 border border-gray-200">
-            <button
-              onClick={handlePrevMonth}
-              className="p-2 hover:bg-white rounded transition"
+      {/* Wrapper for PDF Capture. Everything inside this div gets printed! */}
+      <div ref={calendarRef} className="bg-white p-4 sm:p-6 rounded-xl">
+        {/* Upper Controls Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold tracking-tight text-white bg-[#4A154B] px-4 py-2 rounded-lg shadow">
+              {monthNames[currentMonth]} {currentYear}
+            </h1>
+            <div
+              data-html2canvas-ignore="true"
+              className="flex bg-gray-100 rounded-lg p-1 border border-gray-200"
             >
-              <FiChevronLeft className="w-5 h-5" />
-            </button>
+              <button
+                onClick={handlePrevMonth}
+                className="p-2 hover:bg-white rounded transition"
+              >
+                <FiChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleNextMonth}
+                className="p-2 hover:bg-white rounded transition"
+              >
+                <FiChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div
+            data-html2canvas-ignore="true"
+            className="flex items-center gap-3"
+          >
+            {/* Download PDF Button */}
             <button
-              onClick={handleNextMonth}
-              className="p-2 hover:bg-white rounded transition"
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 bg-[#4A154B] text-white font-bold px-4 py-2 rounded-lg hover:opacity-90 transition shadow"
             >
-              <FiChevronRight className="w-5 h-5" />
+              <FiDownload /> Download Calendar
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="flex items-center gap-2 bg-[#4A154B] text-white font-bold px-4 py-2 rounded-lg hover:opacity-90 transition shadow"
+              >
+                <FiPlus /> Add Event
+              </button>
+            )}
           </div>
         </div>
 
-        {isAdmin && (
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 bg-[#4A154B] text-white font-bold px-4 py-2 rounded-lg hover:opacity-90 transition shadow"
-          >
-            <FiPlus /> Add Event
-          </button>
-        )}
-      </div>
-
-      {/* Dynamic Top Summary Section */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8 shadow-sm">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-          Activities & Events Summary
-        </h2>
-        {summaryEvents.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">
-            No schedules listed for this month.
-          </p>
-        ) : (
-          <div
-            className="grid grid-flow-col gap-x-8 gap-y-2 overflow-x-auto justify-start pb-2"
-            style={{
-              gridTemplateRows: `repeat(${summaryRowCount}, min-content)`,
-            }}
-          >
-            {summaryEvents.map((event) => (
-              <div
-                key={event.id}
-                onClick={() => setSelectedEvent(event)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-md cursor-pointer hover:bg-gray-100 transition w-max max-w-75"
-              >
-                <span
-                  className="text-2xl font-bold"
-                  style={{ color: event.color }}
+        {/* Dynamic Top Summary Section */}
+        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-8 shadow-sm">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+            Summary of Activities & Events
+          </h2>
+          {summaryEvents.length === 0 ? (
+            <p className="text-sm text-gray-500 italic">
+              No schedules listed for this month.
+            </p>
+          ) : (
+            <div
+              className="grid grid-flow-col gap-x-8 gap-y-2 overflow-x-auto justify-start pb-2"
+              style={{
+                gridTemplateRows: `repeat(${summaryRowCount}, min-content)`,
+              }}
+            >
+              {summaryEvents.map((event) => (
+                <div
+                  key={event.id}
+                  onClick={() => setSelectedEvent(event)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-md cursor-pointer hover:bg-gray-100 transition w-max max-w-75"
                 >
-                  {getSummaryDateText(
-                    event.startDate,
-                    event.endDate,
-                    event.title,
-                  )}
-                </span>
-              </div>
+                  <span
+                    className="text-2xl font-bold"
+                    style={{ color: event.color }}
+                  >
+                    {getSummaryDateText(
+                      event.startDate,
+                      event.endDate,
+                      event.title,
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Main Calendar Grid Container */}
+        <div className="bg-white border-t border-l border-[#4A154B] rounded-t-xl shadow-sm mb-8">
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 bg-[#4A154B] text-center py-3 font-bold rounded-t-xl uppercase tracking-wider text-white">
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+          </div>
+
+          {/* Calendar Day Grid */}
+          <div className="grid grid-cols-7 auto-rows-[100px] sm:auto-rows-[120px]">
+            {Array.from({ length: firstDayIndex }).map((_, index) => (
+              <div
+                key={`empty-${index}`}
+                className="bg-gray-50/50 border-r border-b border-[#4A154B]"
+              />
+            ))}
+
+            {Array.from({ length: daysInMonth }).map((_, index) => {
+              const day = index + 1;
+              const dayEvents = getEventsForDay(day);
+
+              return (
+                <div
+                  key={day}
+                  className="p-1 sm:p-2 flex flex-col bg-white border-r border-b border-[#4A154B] hover:bg-gray-50 transition duration-150 overflow-hidden"
+                >
+                  {/* Day Number */}
+                  <span className="text-xs sm:text-sm font-bold text-black self-start mb-1 shrink-0">
+                    {day}
+                  </span>
+
+                  {/* Stacking Events Container */}
+                  <div
+                    className="flex flex-col gap-1 w-full overflow-y-auto flex-1 pb-1"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {dayEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedEvent(event);
+                        }}
+                        className="text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wide truncate px-1 sm:px-1.5 py-0.5 rounded shadow-sm w-full cursor-pointer hover:brightness-110 transition shrink-0"
+                        style={{
+                          backgroundColor: event.color,
+                          textShadow: "0px 1px 2px rgba(0,0,0,0.4)",
+                        }}
+                        title={`${event.title}${event.description ? ` - ${event.description}` : ""}`}
+                      >
+                        {event.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {Array.from({ length: endEmptyCells }).map((_, index) => (
+              <div
+                key={`empty-end-${index}`}
+                className="bg-gray-50/50 border-r border-b border-[#4A154B]"
+              />
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Main Calendar Grid Container */}
-      <div className="bg-white border-t border-l border-[#4A154B] rounded-t-xl shadow-sm mb-8">
-        {/* Day Headers */}
-        <div className="grid grid-cols-7 bg-[#4A154B] text-center py-3 font-bold rounded-t-xl uppercase tracking-wider text-white">
-          <div>Sun</div>
-          <div>Mon</div>
-          <div>Tue</div>
-          <div>Wed</div>
-          <div>Thu</div>
-          <div>Fri</div>
-          <div>Sat</div>
         </div>
 
-        {/* Calendar Day Grid */}
-        <div className="grid grid-cols-7 auto-rows-[100px] sm:auto-rows-[120px]">
-          {Array.from({ length: firstDayIndex }).map((_, index) => (
-            <div
-              key={`empty-${index}`}
-              className="bg-gray-50/50 border-r border-b border-[#4A154B]"
-            />
-          ))}
-
-          {/* FIX: Removed full-box background colors. Events now stack as distinct clickable badges */}
-          {Array.from({ length: daysInMonth }).map((_, index) => {
-            const day = index + 1;
-            const dayEvents = getEventsForDay(day);
-
-            return (
-              <div
-                key={day}
-                className="p-1 sm:p-2 flex flex-col bg-white border-r border-b border-[#4A154B] hover:bg-gray-50 transition duration-150 overflow-hidden"
-              >
-                {/* Day Number */}
-                <span className="text-xs sm:text-sm font-bold text-black self-start mb-1 shrink-0">
-                  {day}
-                </span>
-
-                {/* Stacking Events Container */}
-                <div
-                  className="flex flex-col gap-1 w-full overflow-y-auto flex-1 pb-1"
-                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                >
-                  {dayEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevents clicking the background cell from triggering anything else
-                        setSelectedEvent(event);
-                      }}
-                      className="text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wide truncate px-1 sm:px-1.5 py-0.5 rounded shadow-sm w-full cursor-pointer hover:brightness-110 transition shrink-0"
-                      style={{
-                        backgroundColor: event.color,
-                        textShadow: "0px 1px 2px rgba(0,0,0,0.4)", // Ensures text is readable even on bright colors
-                      }}
-                      title={`${event.title}${event.description ? ` - ${event.description}` : ""}`}
-                    >
-                      {event.title}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {Array.from({ length: endEmptyCells }).map((_, index) => (
-            <div
-              key={`empty-end-${index}`}
-              className="bg-gray-50/50 border-r border-b border-[#4A154B]"
-            />
-          ))}
-        </div>
+        {/* Close the PDF Wrapper */}
       </div>
 
       {/* MODAL 1: Admin Add Event Screen */}
@@ -305,7 +372,7 @@ export default function Calendar() {
               <FiX className="w-5 h-5" />
             </button>
             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <FiCalendar className="text-(--color-accent)" /> Create New Event
+              <FiCalendar className="text-(--color-primary)" /> Create New Event
             </h3>
 
             <form onSubmit={handleAddEvent} className="space-y-4">
@@ -321,7 +388,7 @@ export default function Calendar() {
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-accent)/30 focus:border-(--color-accent)"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30 focus:border-(--color-primary)"
                 />
               </div>
 
@@ -336,7 +403,7 @@ export default function Calendar() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-accent)/30 focus:border-(--color-accent) resize-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30 focus:border-(--color-primary) resize-none"
                 />
               </div>
 
@@ -352,7 +419,7 @@ export default function Calendar() {
                     onChange={(e) =>
                       setFormData({ ...formData, startDate: e.target.value })
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-accent)/30 focus:border-(--color-accent)"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30 focus:border-(--color-primary)"
                   />
                 </div>
                 <div>
@@ -366,7 +433,7 @@ export default function Calendar() {
                     onChange={(e) =>
                       setFormData({ ...formData, endDate: e.target.value })
                     }
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-accent)/30 focus:border-(--color-accent)"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30 focus:border-(--color-primary)"
                   />
                 </div>
               </div>
@@ -392,7 +459,7 @@ export default function Calendar() {
 
               <button
                 type="submit"
-                className="w-full bg-(--color-accent) text-white font-bold py-2.5 rounded-lg hover:opacity-90 transition mt-2 shadow"
+                className="w-full bg-(--color-primary) text-white font-bold py-2.5 rounded-lg hover:opacity-90 transition mt-2 shadow"
               >
                 Save Schedule
               </button>

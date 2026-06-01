@@ -37,6 +37,28 @@ const OrganizationalChart = () => {
     return () => unsubscribe();
   }, []);
 
+  // Forces a direct download to the user's device instead of opening a new tab
+  const handleDownload = async (url, filename) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      const ext = url.split(".").pop().split(/#|\?/)[0];
+      link.download = `${filename}.${ext}`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Download failed, falling back to new tab", error);
+      window.open(url, "_blank");
+    }
+  };
+
   // 2. Handle Upload & Replace (Admin Only)
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -144,18 +166,27 @@ const OrganizationalChart = () => {
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col items-center">
           <div className="w-full flex justify-between items-center mb-4">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
               Last updated: {new Date(chartData.updatedAt).toLocaleDateString()}
             </p>
-            {/* Download / View Full Button */}
-            <a
-              href={chartData.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs md:text-sm bg-(--color-primary) text-white px-3 py-1.5 md:px-4 md:py-2 rounded shadow hover:opacity-90 transition font-bold"
-            >
-              View Full Size
-            </a>
+            <div className="flex gap-2">
+              <button
+                onClick={() =>
+                  handleDownload(chartData.url, "Organizational_Chart")
+                }
+                className="text-xs md:text-sm bg-(--color-primary) text-white px-3 py-1.5 md:px-4 md:py-2 rounded shadow hover:opacity-90 transition font-bold cursor-pointer"
+              >
+                Download
+              </button>
+              <a
+                href={chartData.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs md:text-sm bg-(--color-primary) text-white px-3 py-1.5 md:px-4 md:py-2 rounded shadow hover:opacity-90 transition font-bold"
+              >
+                View Full Size
+              </a>
+            </div>
           </div>
 
           {/* Clickable Image linking to the original file */}

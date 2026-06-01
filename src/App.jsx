@@ -17,6 +17,8 @@ import Tutorials from "./pages/Tutorials";
 import Forms from "./pages/Forms";
 import FormView from "./pages/FormView";
 import AddUser from "./pages/AddUser";
+import ChangePassword from "./pages/ChangePassword";
+import ForgotPassword from "./pages/ForgotPassword";
 
 export default function App() {
   return (
@@ -28,6 +30,14 @@ export default function App() {
           element={
             <PublicRoute>
               <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPassword />
             </PublicRoute>
           }
         />
@@ -53,6 +63,7 @@ export default function App() {
           <Route path="forms/category/:categoryName" element={<Forms />} />
           <Route path="forms/:id" element={<FormView />} />
           <Route path="add-user" element={<AddUser />} />
+          <Route path="change-password" element={<ChangePassword />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -13,13 +13,25 @@ import {
 } from "react-icons/fi";
 
 export default function Navbar() {
-  const { logout } = useAuth();
+  const { logout, currentUser, userRole } = useAuth();
   const navigate = useNavigate();
 
   const [structuredCategories, setStructuredCategories] = useState([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileFormsOpen, setIsMobileFormsOpen] = useState(false);
   const [mobileExpandedCat, setMobileExpandedCat] = useState(null);
+
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".profile-dropdown-container")) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const linkClass = ({ isActive }) =>
     isActive
@@ -39,7 +51,12 @@ export default function Navbar() {
     setIsMobileMenuOpen(false);
     setIsMobileFormsOpen(false);
     setMobileExpandedCat(null);
+    setIsProfileOpen(false);
   };
+
+  const userInitial = currentUser?.email
+    ? currentUser.email.charAt(0).toUpperCase()
+    : "U";
 
   useEffect(() => {
     const q = query(collection(db, "forms"), orderBy("createdAt", "desc"));
@@ -80,7 +97,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between lg:justify-center h-14">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden text-white hover:text-gray-300 focus:outline-none p-2"
+            className="lg:hidden text-white hover:text-gray-300 focus:outline-none p-2 cursor-pointer"
           >
             <svg
               className="w-6 h-6"
@@ -157,7 +174,6 @@ export default function Navbar() {
                             <span className="truncate pr-2 flex items-center gap-2">
                               <FiFolder className="shrink-0" /> {cat.name}
                             </span>
-                            {/* Changed to Left Chevron since menu opens left now */}
                             <span className="text-gray-400 group-hover/sub:text-white">
                               <FiChevronLeft className="w-4 h-4" />
                             </span>
@@ -173,7 +189,6 @@ export default function Navbar() {
                         )}
 
                         {cat.isMultiple && (
-                          /* Changed left-full to right-full to prevent hitting the screen edge */
                           <div className="absolute right-full top-0 -mr-px w-64 bg-white border border-gray-200 rounded shadow-xl opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible transition-all duration-150 z-50 max-h-72 overflow-y-auto">
                             <ul className="py-1">
                               {cat.files.map((file) => (
@@ -202,27 +217,91 @@ export default function Navbar() {
                 )}
               </div>
             </div>
+            {userRole === "admin" && (
+              <NavLink to="/add-user" className={linkClass}>
+                Manage Users
+              </NavLink>
+            )}
+            {/* Desktop Profile Avatar */}
+            <div className="relative ml-4 profile-dropdown-container">
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="cursor-pointer w-9 h-9 flex items-center justify-center rounded-full bg-(--color-primary) text-white font-bold hover:opacity-90 transition-opacity focus:outline-none"
+              >
+                {userInitial}
+              </button>
 
-            <button
-              onClick={handleLogout}
-              className="bg-(--color-accent) text-white px-4 py-1.5 rounded hover:opacity-90 transition"
-            >
-              Log Out
-            </button>
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p
+                      className="text-sm text-gray-900 truncate font-semibold"
+                      title={currentUser?.email}
+                    >
+                      {currentUser?.email}
+                    </p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      to="/change-password"
+                      onClick={closeMobileMenu}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors font-medium"
+                    >
+                      Change Password
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="cursor-pointer w-full text-left block px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="lg:hidden">
+          {/* Mobile Profile Avatar */}
+          <div className="lg:hidden relative profile-dropdown-container pr-2">
             <button
-              onClick={handleLogout}
-              className="text-xs bg-(--color-accent) text-white px-3 py-1.5 rounded hover:opacity-90"
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-full bg-(--color-primary) text-white font-bold text-sm hover:opacity-90 transition-opacity focus:outline-none"
             >
-              Log Out
+              {userInitial}
             </button>
+
+            {isProfileOpen && (
+              <div className="absolute right-2 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p
+                    className="text-sm text-gray-900 truncate font-semibold"
+                    title={currentUser?.email}
+                  >
+                    {currentUser?.email}
+                  </p>
+                </div>
+                <div className="py-1">
+                  <Link
+                    to="/change-password"
+                    onClick={closeMobileMenu}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors font-medium"
+                  >
+                    Change Password
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="cursor-pointer w-full text-left block px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {isMobileMenuOpen && (
-          <div className="lg:hidden pb-4 pt-2 border-t border-gray-700 absolute top-14 left-0 w-full bg-(--color-secondary) z-50 shadow-xl">
+          <div className="lg:hidden pb-4 pt-2 border-t border-gray-700 absolute top-14 left-0 w-full bg-(--color-secondary) z-40 shadow-xl">
             <div className="flex flex-col space-y-1 px-4">
               <NavLink to="/" onClick={closeMobileMenu} className={linkClass}>
                 Home
@@ -259,7 +338,7 @@ export default function Navbar() {
               <div className="w-full">
                 <button
                   onClick={() => setIsMobileFormsOpen(!isMobileFormsOpen)}
-                  className="w-full text-left text-white font-bold px-3 py-2 flex justify-between items-center"
+                  className="w-full text-left text-white font-bold px-3 py-2 flex justify-between items-center cursor-pointer"
                 >
                   <span>Forms</span>
                   <span>
@@ -299,7 +378,7 @@ export default function Navbar() {
                                         : cat.name,
                                     )
                                   }
-                                  className="w-full flex justify-between items-center px-4 py-2.5 text-sm font-semibold text-gray-300"
+                                  className="cursor-pointer w-full flex justify-between items-center px-4 py-2.5 text-sm font-semibold text-gray-300"
                                 >
                                   <span className="truncate pr-2 flex items-center gap-2">
                                     <FiFolder className="shrink-0" /> {cat.name}
@@ -349,6 +428,15 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+              {userRole === "admin" && (
+                <NavLink
+                  to="/add-user"
+                  onClick={closeMobileMenu}
+                  className={linkClass}
+                >
+                  Manage Users
+                </NavLink>
+              )}
             </div>
           </div>
         )}

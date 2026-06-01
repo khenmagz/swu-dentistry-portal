@@ -48,8 +48,6 @@ export default function Layout() {
 
         {/* Navigation */}
         <nav className="sticky top-0 z-50">
-          {" "}
-          {/* Increased z-index to 50 so mobile menu sits above content */}
           <Navbar />
         </nav>
 

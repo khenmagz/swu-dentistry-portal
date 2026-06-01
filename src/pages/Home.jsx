@@ -15,6 +15,8 @@ import {
   limit,
   getDocs,
   startAfter,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 
 // --- CONFIGURATION ---
@@ -117,15 +119,51 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
     }
   };
 
+  // NEW: Handle Pinning Logic for Admin
+  const handleTogglePin = async () => {
+    if (!isAdmin) return;
+    try {
+      if (!post.isPinned) {
+        // If we are pinning this, find any currently pinned post and unpin it first (Only 1 allowed)
+        const pinnedQuery = query(
+          collection(db, "announcements"),
+          where("isPinned", "==", true),
+        );
+        const pinnedSnap = await getDocs(pinnedQuery);
+        pinnedSnap.forEach(async (d) => {
+          await updateDoc(doc(db, "announcements", d.id), { isPinned: false });
+        });
+      }
+
+      // Toggle the current post's pinned status
+      await updateDoc(doc(db, "announcements", post.id), {
+        isPinned: !post.isPinned,
+      });
+    } catch (error) {
+      console.error("Error toggling pin:", error);
+    }
+  };
+
   return (
-    // 1. THE MAIN CONTAINER
-    <div className="bg-white/70 rounded-b-4xl shadow-md mb-10 overflow-hidden border border-gray-200">
+    // 1. THE MAIN CONTAINER - Added visual indicators if pinned
+    <div
+      className={`bg-white/70 rounded-b-4xl shadow-md mb-10 overflow-hidden border ${post.isPinned ? "border-(--color-primary) ring-2 ring-(--color-primary)/20" : "border-gray-200"}`}
+    >
       {/* 2. STRUCTURED HEADER */}
-      <div className="px-6 pt-6 pb-4 border-b bg-gray-100 border-gray-100 flex justify-between items-start">
-        <div className="border-l-4 border-(--color-primary) pl-4">
-          <h3 className="font-extrabold text-gray-900 text-xl uppercase tracking-wide">
-            {post.title || "Admin Announcement"}
-          </h3>
+      <div
+        className={`px-6 pt-6 pb-4 border-b flex justify-between items-start ${post.isPinned ? "bg-(--color-primary)/5" : "bg-gray-100 border-gray-100"}`}
+      >
+        <div className="border-l-4 border-(--color-primary) pl-4 flex flex-col justify-center">
+          <div className="flex items-center gap-3">
+            <h3 className="font-extrabold text-gray-900 text-xl uppercase tracking-wide">
+              {post.title || "Admin Announcement"}
+            </h3>
+            {post.isPinned && (
+              <span className="bg-(--color-primary) text-white text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-widest shadow-sm">
+                Pinned
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-500 font-medium mt-1">
             {new Date(post.createdAt).toLocaleString([], {
               dateStyle: "medium",
@@ -133,13 +171,22 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
             })}
           </p>
         </div>
+
         {isAdmin && (
-          <button
-            onClick={handleDeletePost}
-            className="text-xs font-bold text-gray-400 hover:text-red-600 transition px-2 py-1 border border-transparent hover:border-red-200 rounded"
-          >
-            Delete
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleTogglePin}
+              className={`text-xs font-bold transition px-3 py-1.5 border rounded ${post.isPinned ? "bg-gray-200 text-gray-700 hover:bg-gray-300 border-gray-300" : "bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"}`}
+            >
+              {post.isPinned ? "Unpin" : "Pin Post"}
+            </button>
+            <button
+              onClick={handleDeletePost}
+              className="text-xs font-bold text-gray-400 hover:text-white hover:bg-red-500 transition px-3 py-1.5 border border-transparent hover:border-red-600 rounded"
+            >
+              Delete
+            </button>
+          </div>
         )}
       </div>
 
@@ -298,10 +345,14 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
 const Home = () => {
   const { currentUser, userRole } = useAuth();
   const isAdmin = userRole === "admin";
+
+  const [pinnedPost, setPinnedPost] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 2. LOGIC FIX: Added a state for the title
+  // LAZY LOADING STATE: Start with 5 items
+  const [postLimit, setPostLimit] = useState(5);
+
   const [title, setTitle] = useState("");
   const [postText, setPostText] = useState("");
   const [allowComments, setAllowComments] = useState(true);
@@ -309,35 +360,68 @@ const Home = () => {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // QUILL MODULES CONFIGURATION - ADDED FOR ALIGNMENT
   const quillModules = {
     toolbar: [
       [{ header: [1, 2, false] }],
       ["bold", "italic", "underline", "strike", "blockquote"],
       [{ list: "ordered" }, { list: "bullet" }],
-      [{ align: [] }], // This adds Left, Center, Right, and Justify buttons!
+      [{ align: [] }],
       ["link"],
       ["clean"],
     ],
   };
 
+  // 1. Fetch Pinned Post Separately
+  useEffect(() => {
+    const qPinned = query(
+      collection(db, "announcements"),
+      where("isPinned", "==", true),
+      limit(1),
+    );
+    const unsubscribePinned = onSnapshot(qPinned, (snapshot) => {
+      if (!snapshot.empty) {
+        setPinnedPost({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+      } else {
+        setPinnedPost(null);
+      }
+    });
+    return () => unsubscribePinned();
+  }, []);
+
+  // 2. Fetch Regular Posts with Dynamic Limit (Lazy Loading)
   useEffect(() => {
     const q = query(
       collection(db, "announcements"),
       orderBy("createdAt", "desc"),
+      limit(postLimit),
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setPosts(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
     });
     return () => unsubscribe();
+  }, [postLimit]);
+
+  // 3. Scroll Listener for Lazy Loading
+  useEffect(() => {
+    const handleScroll = () => {
+      // If user scrolls near the bottom of the page, load 5 more!
+      const bottom =
+        Math.ceil(window.innerHeight + window.scrollY) >=
+        document.documentElement.scrollHeight - 100;
+      if (bottom) {
+        setPostLimit((prev) => prev + 5);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
     const plainText = postText.replace(/<[^>]+>/g, "").trim();
 
-    // Check if they entered a title
     if (!title.trim()) {
       setMessage("Please enter a title for your announcement.");
       return;
@@ -374,17 +458,16 @@ const Home = () => {
         }
       }
 
-      // 3. LOGIC FIX: Save the title to the database
       await addDoc(collection(db, "announcements"), {
         title: title,
         text: postText,
         fileUrl: fileUrl,
         fileName: fileName,
         allowComments: allowComments,
+        isPinned: false, // Default to not pinned on creation
         createdAt: new Date().toISOString(),
       });
 
-      // Clear all fields
       setTitle("");
       setPostText("");
       setSelectedFile(null);
@@ -406,6 +489,9 @@ const Home = () => {
       </div>
     );
 
+  // We filter out the pinned post from the main feed array so it doesn't show up twice!
+  const unpinnedPosts = posts.filter((p) => p.id !== pinnedPost?.id);
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -423,7 +509,6 @@ const Home = () => {
             Create Announcement
           </h2>
           <form onSubmit={handleCreatePost}>
-            {/* 4. UI FIX: New Title Input Field */}
             <input
               type="text"
               value={title}
@@ -438,7 +523,7 @@ const Home = () => {
                 theme="snow"
                 value={postText}
                 onChange={setPostText}
-                modules={quillModules} // UPDATED HERE to apply alignment options
+                modules={quillModules}
                 placeholder="Type the details of your announcement here..."
               />
             </div>
@@ -482,7 +567,7 @@ const Home = () => {
         </div>
       )}
 
-      {posts.length === 0 ? (
+      {posts.length === 0 && !pinnedPost ? (
         <div className="text-center p-12 bg-white rounded-xl shadow-sm border border-gray-200">
           <p className="text-gray-500 font-medium">
             No announcements have been posted yet.
@@ -490,7 +575,18 @@ const Home = () => {
         </div>
       ) : (
         <div>
-          {posts.map((post) => (
+          {/* ALWAYS RENDER THE PINNED POST AT THE VERY TOP */}
+          {pinnedPost && (
+            <AnnouncementCard
+              key={pinnedPost.id}
+              post={pinnedPost}
+              currentUser={currentUser}
+              isAdmin={isAdmin}
+            />
+          )}
+
+          {/* RENDER THE REST OF THE FEED */}
+          {unpinnedPosts.map((post) => (
             <AnnouncementCard
               key={post.id}
               post={post}
@@ -498,6 +594,13 @@ const Home = () => {
               isAdmin={isAdmin}
             />
           ))}
+
+          {/* Optional: A small loading indicator when fetching more posts via scroll */}
+          {posts.length >= postLimit && (
+            <div className="text-center text-sm text-gray-400 py-4 font-semibold">
+              Loading older posts...
+            </div>
+          )}
         </div>
       )}
     </div>

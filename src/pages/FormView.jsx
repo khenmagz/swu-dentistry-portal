@@ -29,6 +29,29 @@ const FormView = () => {
     fetchForm();
   }, [id]);
 
+  // Forces a direct download to the user's device instead of opening a new tab
+  const handleDownload = async (url, filename) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      // Grab the extension (.pdf, .jpg, etc) from the original URL
+      const ext = url.split(".").pop().split(/#|\?/)[0];
+      link.download = `${filename}.${ext}`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Download failed, falling back to new tab", error);
+      window.open(url, "_blank"); // Fallback if CORS blocks the fetch
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 text-(--color-secondary)">
@@ -73,29 +96,46 @@ const FormView = () => {
       </div>
 
       {/* Form Display */}
-      <div className="flex flex-col items-center">
-        <div className="w-full bg-(--color-background) p-4 shadow rounded min-h-125 flex flex-col items-center justify-center border border-gray-200 mb-6">
-          {isPdf && (
-            <p className="text-sm font-semibold text-(--color-secondary) mb-3">
-              Document Preview (Page 1)
-            </p>
-          )}
-
-          <img
-            src={displayUrl}
-            alt={formData.title}
-            className="max-w-full h-auto max-h-[70vh] rounded object-contain shadow-sm border border-gray-300"
-          />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col items-center">
+        <div className="w-full flex justify-between items-center mb-4">
+          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
+            {isPdf ? "Document Preview (Page 1)" : "Image Preview"}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() =>
+                handleDownload(
+                  formData.url,
+                  formData.title.replace(/\s+/g, "_"),
+                )
+              }
+              className="text-xs md:text-sm bg-(--color-primary) text-white px-3 py-1.5 md:px-4 md:py-2 rounded shadow hover:opacity-90 transition font-bold cursor-pointer"
+            >
+              Download
+            </button>
+            <a
+              href={formData.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs md:text-sm bg-(--color-primary) text-white px-3 py-1.5 md:px-4 md:py-2 rounded shadow hover:opacity-90 transition font-bold"
+            >
+              View Full Size
+            </a>
+          </div>
         </div>
 
-        {/* Action button to open full scrollable attachment in another window */}
         <a
           href={formData.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-(--color-primary) text-(--color-background) px-8 py-3 rounded shadow hover:opacity-90 transition font-semibold text-lg text-center"
+          className="cursor-pointer w-full flex justify-center hover:opacity-95 transition"
+          title="Click to view full attachment"
         >
-          {isPdf ? "Open Full PDF Document" : "Open Original Image"}
+          <img
+            src={displayUrl}
+            alt={formData.title}
+            className="max-w-full h-auto max-h-[70vh] rounded shadow-sm border border-gray-100 object-contain"
+          />
         </a>
       </div>
     </div>

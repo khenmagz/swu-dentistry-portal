@@ -1,19 +1,20 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import bgImage from "../assets/bg-villa.jpg";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // New loading state
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
 
     try {
       await login(email, password);
@@ -25,9 +26,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-(--color-background) flex items-center justify-center p-4">
-      {/* Main Card Container */}
-      <div className="bg-(--color-surface) p-10 rounded-xl shadow-xl w-full max-w-md border border-gray-200">
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-(--color-background)">
+      <div
+        className="absolute inset-0 z-0 opacity-10 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${bgImage})` }}
+      />
+      {/* Main Card Container - Added relative and z-10 to stay above the background */}
+      <div className="bg-(--color-surface) p-10 rounded-xl shadow-xl w-full max-w-md border border-gray-200 relative z-10">
         {/* Header Section */}
         <div className="text-center mb-8">
           <h2 className="text-3xl font-extrabold text-(--color-primary) tracking-tight">
@@ -40,7 +45,7 @@ const Login = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-(--color-accent) text-white p-3 rounded-lg mb-6 text-sm font-medium  ">
+          <div className="bg-(--color-accent) text-white p-3 rounded-lg mb-6 text-sm font-medium">
             {error}
           </div>
         )}
@@ -116,11 +121,14 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Footer Link */}
+        {/* Footer Link - Updated */}
         <div className="mt-8 text-center">
-          <p className="text-xs text-gray-500">
-            Forgot password? Contact the IT Department.
-          </p>
+          <Link
+            to="/forgot-password"
+            className="text-sm font-semibold text-(--color-primary) hover:text-(--color-accent) hover:underline transition-colors p-2"
+          >
+            Forgot password?
+          </Link>
         </div>
       </div>
     </div>
