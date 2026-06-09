@@ -119,7 +119,7 @@ const OrganizationalChart = () => {
           Organizational Chart
         </h1>
         <p className="text-(--color-secondary) mt-1">
-          Structure of the Dentistry Department.
+          Structure of the College of Dentistry.
         </p>
       </div>
 

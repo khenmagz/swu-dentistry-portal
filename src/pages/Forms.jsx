@@ -44,12 +44,14 @@ const Forms = () => {
     return () => unsubscribe();
   }, []);
 
+  // CHANGED "Forms" TO "FORMS"
   const uniqueCategories = [
-    ...new Set(forms.map((form) => form.category || "General")),
+    ...new Set(forms.map((form) => form.category || "FORMS")),
   ].sort();
 
   const groupedForms = forms.reduce((acc, form) => {
-    const cat = form.category || "General";
+    // CHANGED "Forms" TO "FORMS"
+    const cat = form.category || "FORMS";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(form);
     return acc;
@@ -91,7 +93,8 @@ const Forms = () => {
       if (uploadedFile.secure_url) {
         await addDoc(collection(db, "forms"), {
           title: title,
-          category: category.trim() || "General",
+          // CHANGED "Forms" TO "FORMS"
+          category: category.trim() || "FORMS",
           url: uploadedFile.secure_url,
           filename: selectedFile.name,
           createdAt: new Date().toISOString(),
@@ -133,9 +136,9 @@ const Forms = () => {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold text-(--color-primary)">
-          {categoryName ? `${categoryName} Directory` : "Forms Directory"}
+          {categoryName ? `${categoryName} Directory` : "Documents Directory"}
         </h1>
         {isAdmin && (
           <span className="bg-(--color-accent) text-(--color-background) px-3 py-1 rounded text-sm">
@@ -143,7 +146,9 @@ const Forms = () => {
           </span>
         )}
       </div>
-
+      <p className="text-(--color-secondary)  mb-8">
+        Access the right file anytime.
+      </p>
       {isAdmin && !categoryName && (
         <div className="bg-(--color-surface) p-6 rounded shadow mb-8 border border-gray-200">
           <h2 className="text-lg font-semibold mb-4 text-(--color-primary)">

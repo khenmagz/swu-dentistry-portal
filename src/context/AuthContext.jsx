@@ -5,21 +5,21 @@ import {
   onAuthStateChanged,
   signOut,
 } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore"; // We swapped getDoc for onSnapshot
+import { doc, onSnapshot } from "firebase/firestore";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  // NEW: Store the user's extra Firestore data (like firstName)
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to log in
   const login = (email, password) => {
     return signInWithEmailAndPassword(auth, email, password);
   };
 
-  // Function to log out
   const logout = () => {
     return signOut(auth);
   };
@@ -37,6 +37,8 @@ export const AuthProvider = ({ children }) => {
             // They are valid! Set their data and stop loading.
             setCurrentUser(user);
             setUserRole(docSnap.data().role);
+            // NEW: Save all their Firestore fields so we can use them anywhere!
+            setUserData(docSnap.data());
             setLoading(false);
           } else {
             // SOFT BAN TRIGGERED!
@@ -45,6 +47,7 @@ export const AuthProvider = ({ children }) => {
             signOut(auth).then(() => {
               setCurrentUser(null);
               setUserRole(null);
+              setUserData(null); // Reset
               setLoading(false);
             });
           }
@@ -53,6 +56,7 @@ export const AuthProvider = ({ children }) => {
         // No user is logged in
         setCurrentUser(null);
         setUserRole(null);
+        setUserData(null); // Reset
         setLoading(false);
 
         // Clean up the database listener if they log out
@@ -74,6 +78,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     currentUser,
     userRole,
+    userData, // NEW: Pass it down so Home and Navbar can see it!
     login,
     logout,
   };

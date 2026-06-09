@@ -28,7 +28,7 @@ const CLOUDINARY_UPLOAD_PRESET = "school_portal_preset";
 // COMPONENT 1: The Individual Post Card
 // ==========================================
 
-const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
+const AnnouncementCard = ({ post, currentUser, isAdmin, userData }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [lastVisible, setLastVisible] = useState(null);
@@ -86,6 +86,7 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
     try {
       const commentData = {
         email: currentUser?.email,
+        firstName: userData?.firstName || currentUser?.email.split("@")[0], // Saves the first name
         text: newComment,
         createdAt: new Date().toISOString(),
       };
@@ -151,11 +152,12 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
     >
       {/* 2. STRUCTURED HEADER */}
       <div
-        className={`px-6 pt-6 pb-4 border-b flex justify-between items-start ${post.isPinned ? "bg-(--color-primary)/5" : "bg-gray-100 border-gray-100"}`}
+        className={`px-4 sm:px-6 pt-6 pb-4 border-b flex justify-between items-start ${post.isPinned ? "bg-(--color-primary)/5" : "bg-gray-100 border-gray-100"}`}
       >
         <div className="border-l-4 border-(--color-primary) pl-4 flex flex-col justify-center">
           <div className="flex items-center gap-3">
-            <h3 className="font-extrabold text-gray-900 text-xl uppercase tracking-wide">
+            {/* Header text scaled down from text-xl to text-lg */}
+            <h3 className="font-extrabold text-gray-900 text-lg uppercase tracking-wide">
               {post.title || "Admin Announcement"}
             </h3>
             {post.isPinned && (
@@ -164,7 +166,7 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 font-medium mt-1">
             {new Date(post.createdAt).toLocaleString([], {
               dateStyle: "medium",
               timeStyle: "short",
@@ -173,7 +175,7 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
         </div>
 
         {isAdmin && (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
             <button
               onClick={handleTogglePin}
               className={`text-xs font-bold transition px-3 py-1.5 border rounded ${post.isPinned ? "bg-gray-200 text-gray-700 hover:bg-gray-300 border-gray-300" : "bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"}`}
@@ -191,7 +193,8 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
       </div>
 
       {/* POST BODY */}
-      <div className="px-6 py-6 w-full min-w-0 overflow-hidden">
+      <div className="px-4 sm:px-6 py-6 w-full min-w-0 overflow-hidden">
+        {/* Post body scaled properly. h1 changed to text-xl, h2 to text-lg to fit 5xl width */}
         <div
           className="text-gray-800 text-md leading-relaxed w-full wrap-break-word whitespace-pre-wrap
                 **:bg-transparent! 
@@ -200,8 +203,8 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
                 [&_p]:mb-4 last:[&_p]:mb-0 [&_p]:min-h-6
                 [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-4
                 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:mb-4
-                [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-3
-                [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3
+                [&_h1]:text-xl [&_h1]:font-bold [&_h1]:mb-3
+                [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mb-3
                 [&_a]:text-(--color-primary) [&_a]:underline [&_a]:font-semibold
                 [&_.ql-align-center]:text-center
                 [&_.ql-align-right]:text-right
@@ -251,7 +254,7 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
 
       {/* 3. STRUCTURED COMMENTS ZONE */}
       {post.allowComments && (
-        <div className="bg-gray-50/80 px-6 py-6 border-t border-gray-200">
+        <div className="bg-gray-50/80 px-4 sm:px-6 py-6 border-t border-gray-200">
           {hasMore && comments.length >= 3 && (
             <button
               onClick={loadMoreComments}
@@ -264,7 +267,9 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
 
           <div className="flex flex-col-reverse gap-3 mb-6">
             {comments.map((comment) => {
-              const displayName = comment.email.split("@")[0];
+              // Uses firstName if available, otherwise falls back to email prefix for older comments
+              const displayName =
+                comment.firstName || comment.email.split("@")[0];
               const isCommentOwner = currentUser?.email === comment.email;
               const commentDate = new Date(
                 comment.createdAt,
@@ -279,12 +284,13 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
                   key={comment.id}
                   className="bg-white border border-gray-200 rounded-lg p-4 flex gap-3 shadow-sm group relative"
                 >
+                  {/* AVATAR RETAINED - Now uses first letter of firstName */}
                   <div className="w-8 h-8 rounded bg-gray-200 text-gray-600 flex items-center justify-center font-bold text-sm shrink-0">
                     {displayName.charAt(0).toUpperCase()}
                   </div>
 
                   <div className="flex-1">
-                    <div className="flex items-baseline gap-2 mb-1">
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2 mb-1">
                       <span className="font-bold text-sm text-gray-900">
                         {displayName}
                       </span>
@@ -314,8 +320,11 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
             onSubmit={handleAddComment}
             className="flex gap-3 items-start bg-white border border-gray-300 rounded-lg p-2 focus-within:border-(--color-primary) focus-within:ring-1 focus-within:ring-(--color-primary) transition shadow-sm"
           >
+            {/* INPUT AVATAR RETAINED - Uses current user's first name */}
             <div className="w-8 h-8 rounded bg-(--color-primary) text-white flex items-center justify-center font-bold text-sm shrink-0">
-              {currentUser?.email.charAt(0).toUpperCase()}
+              {(userData?.firstName || currentUser?.email || "?")
+                .charAt(0)
+                .toUpperCase()}
             </div>
 
             <input
@@ -328,7 +337,7 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
             <button
               type="submit"
               disabled={!newComment.trim()}
-              className="bg-gray-100 hover:bg-(--color-primary) hover:text-white text-gray-500 disabled:opacity-50 disabled:hover:bg-gray-100 disabled:hover:text-gray-500 p-2 rounded transition"
+              className="bg-gray-100 hover:bg-(--color-primary) hover:text-white text-gray-500 disabled:opacity-50 disabled:hover:bg-gray-100 disabled:hover:text-gray-500 p-2 rounded transition shrink-0"
             >
               <FiSend size={16} />
             </button>
@@ -343,7 +352,8 @@ const AnnouncementCard = ({ post, currentUser, isAdmin }) => {
 // COMPONENT 2: The Main Home Feed
 // ==========================================
 const Home = () => {
-  const { currentUser, userRole } = useAuth();
+  // Grab userData from Context so we can pass the firstName down
+  const { currentUser, userRole, userData } = useAuth();
   const isAdmin = userRole === "admin";
 
   const [pinnedPost, setPinnedPost] = useState(null);
@@ -493,9 +503,11 @@ const Home = () => {
   const unpinnedPosts = posts.filter((p) => p.id !== pinnedPost?.id);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    // Replaced max-w-7xl with max-w-5xl
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-(--color-primary)">
+        {/* Changed text-3xl to text-2xl */}
+        <h1 className="text-2xl font-bold text-(--color-primary)">
           Announcement
         </h1>
         <p className="text-gray-500 text-sm mt-1">
@@ -504,8 +516,9 @@ const Home = () => {
       </div>
 
       {isAdmin && (
-        <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-(--color-primary) mb-10">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border-t-4 border-(--color-primary) mb-10">
+          {/* Changed text-lg to text-base */}
+          <h2 className="text-base font-bold text-gray-800 mb-4">
             Create Announcement
           </h2>
           <form onSubmit={handleCreatePost}>
@@ -551,7 +564,7 @@ const Home = () => {
               <button
                 type="submit"
                 disabled={uploading}
-                className="bg-(--color-primary) text-white px-8 py-2.5 rounded-full shadow-md font-bold hover:brightness-110 transition disabled:opacity-50"
+                className="w-full sm:w-auto bg-(--color-primary) text-white px-8 py-2.5 rounded-full shadow-md font-bold hover:brightness-110 transition disabled:opacity-50"
               >
                 {uploading ? "Posting..." : "Post Announcement"}
               </button>
@@ -582,6 +595,7 @@ const Home = () => {
               post={pinnedPost}
               currentUser={currentUser}
               isAdmin={isAdmin}
+              userData={userData} // Pass userData down
             />
           )}
 
@@ -592,6 +606,7 @@ const Home = () => {
               post={post}
               currentUser={currentUser}
               isAdmin={isAdmin}
+              userData={userData} // Pass userData down
             />
           ))}
 

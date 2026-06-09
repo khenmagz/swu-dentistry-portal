@@ -13,14 +13,13 @@ import {
 } from "react-icons/fi";
 
 export default function Navbar() {
-  const { logout, currentUser, userRole } = useAuth();
+  const { logout, currentUser, userRole, userData } = useAuth();
   const navigate = useNavigate();
 
   const [structuredCategories, setStructuredCategories] = useState([]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileFormsOpen, setIsMobileFormsOpen] = useState(false);
   const [mobileExpandedCat, setMobileExpandedCat] = useState(null);
-
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
@@ -54,9 +53,16 @@ export default function Navbar() {
     setIsProfileOpen(false);
   };
 
-  const userInitial = currentUser?.email
-    ? currentUser.email.charAt(0).toUpperCase()
-    : "U";
+  // Uses First Name if available, otherwise defaults to the first part of their email
+  const firstNameDisplay = userData?.firstName
+    ? userData.firstName
+    : currentUser?.email
+      ? currentUser.email.split("@")[0]
+      : "Profile";
+
+  const displayName = userData?.firstName
+    ? `${userData.firstName} ${userData.lastName || ""}`.trim()
+    : currentUser?.email;
 
   useEffect(() => {
     const q = query(collection(db, "forms"), orderBy("createdAt", "desc"));
@@ -67,7 +73,7 @@ export default function Navbar() {
       }));
 
       const grouped = fetchedForms.reduce((acc, form) => {
-        const cat = form.category || "General";
+        const cat = form.category || "FORMS";
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(form);
         return acc;
@@ -147,17 +153,10 @@ export default function Navbar() {
                   linkClass({ isActive: false }) + " flex items-center gap-1"
                 }
               >
-                Forms
+                Documents
               </Link>
 
               <div className="absolute left-0 mt-1 w-60 bg-(--color-surface) border border-gray-200 rounded shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <Link
-                  to="/forms"
-                  className="block px-4 py-3 text-sm font-bold text-(--color-primary) bg-gray-100 border-b border-gray-200 hover:bg-gray-200"
-                >
-                  All Forms Directory
-                </Link>
-
                 {structuredCategories.length === 0 ? (
                   <div className="px-4 py-3 text-xs text-(--color-secondary)">
                     No categories yet.
@@ -217,18 +216,20 @@ export default function Navbar() {
                 )}
               </div>
             </div>
+
             {userRole === "admin" && (
               <NavLink to="/add-user" className={linkClass}>
                 Manage Users
               </NavLink>
             )}
-            {/* Desktop Profile Avatar */}
+
+            {/* Desktop Profile Box Container */}
             <div className="relative ml-4 profile-dropdown-container">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="cursor-pointer w-9 h-9 flex items-center justify-center rounded-full bg-(--color-primary) text-white font-bold hover:opacity-90 transition-opacity focus:outline-none"
+                className="cursor-pointer px-4 py-1.5 flex items-center justify-center rounded bg-(--color-primary) text-white font-bold hover:opacity-90 transition-opacity focus:outline-none"
               >
-                {userInitial}
+                {firstNameDisplay}
               </button>
 
               {isProfileOpen && (
@@ -236,10 +237,18 @@ export default function Navbar() {
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p
                       className="text-sm text-gray-900 truncate font-semibold"
-                      title={currentUser?.email}
+                      title={displayName}
                     >
-                      {currentUser?.email}
+                      {displayName}
                     </p>
+                    {userData?.firstName && (
+                      <p
+                        className="text-xs text-gray-500 truncate mt-0.5"
+                        title={currentUser?.email}
+                      >
+                        {currentUser?.email}
+                      </p>
+                    )}
                   </div>
                   <div className="py-1">
                     <Link
@@ -247,7 +256,7 @@ export default function Navbar() {
                       onClick={closeMobileMenu}
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors font-medium"
                     >
-                      Change Password
+                      Profile Settings
                     </Link>
                     <button
                       onClick={handleLogout}
@@ -261,13 +270,13 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Mobile Profile Avatar */}
+          {/* Mobile Profile Box Container */}
           <div className="lg:hidden relative profile-dropdown-container pr-2">
             <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-full bg-(--color-primary) text-white font-bold text-sm hover:opacity-90 transition-opacity focus:outline-none"
+              className="cursor-pointer px-3 py-1 flex items-center justify-center rounded bg-(--color-primary) text-white font-bold text-sm hover:opacity-90 transition-opacity focus:outline-none"
             >
-              {userInitial}
+              {firstNameDisplay}
             </button>
 
             {isProfileOpen && (
@@ -275,10 +284,18 @@ export default function Navbar() {
                 <div className="px-4 py-3 border-b border-gray-100">
                   <p
                     className="text-sm text-gray-900 truncate font-semibold"
-                    title={currentUser?.email}
+                    title={displayName}
                   >
-                    {currentUser?.email}
+                    {displayName}
                   </p>
+                  {userData?.firstName && (
+                    <p
+                      className="text-xs text-gray-500 truncate mt-0.5"
+                      title={currentUser?.email}
+                    >
+                      {currentUser?.email}
+                    </p>
+                  )}
                 </div>
                 <div className="py-1">
                   <Link
@@ -286,7 +303,7 @@ export default function Navbar() {
                     onClick={closeMobileMenu}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors font-medium"
                   >
-                    Change Password
+                    Profile Settings
                   </Link>
                   <button
                     onClick={handleLogout}
@@ -340,7 +357,7 @@ export default function Navbar() {
                   onClick={() => setIsMobileFormsOpen(!isMobileFormsOpen)}
                   className="w-full text-left text-white font-bold px-3 py-2 flex justify-between items-center cursor-pointer"
                 >
-                  <span>Forms</span>
+                  <span>Documents</span>
                   <span>
                     {isMobileFormsOpen ? (
                       <FiChevronUp className="w-5 h-5" />
@@ -352,14 +369,6 @@ export default function Navbar() {
 
                 {isMobileFormsOpen && (
                   <div className="bg-gray-800 rounded-lg mx-1 mt-1 py-1 mb-2">
-                    <Link
-                      to="/forms"
-                      onClick={closeMobileMenu}
-                      className="block px-4 py-2 text-xs text-(--color-accent) font-bold border-b border-gray-700 tracking-wider uppercase"
-                    >
-                      All Forms Directory
-                    </Link>
-
                     {structuredCategories.length === 0 ? (
                       <div className="px-4 py-2 text-xs text-gray-400">
                         No categories yet.
@@ -391,7 +400,6 @@ export default function Navbar() {
                                     )}
                                   </span>
                                 </button>
-
                                 {mobileExpandedCat === cat.name && (
                                   <ul className="bg-gray-900 mx-2 my-1 rounded border-l-2 border-(--color-accent)">
                                     {cat.files.map((file) => (

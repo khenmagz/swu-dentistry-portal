@@ -137,7 +137,7 @@ const Tutorials = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold text-(--color-primary)">Tutorials</h1>
         {isAdmin && (
           <span className="bg-(--color-accent) text-(--color-background) px-3 py-1 rounded text-sm">
@@ -145,7 +145,9 @@ const Tutorials = () => {
           </span>
         )}
       </div>
-
+      <p className="text-(--color-secondary)  mb-8">
+        Structure of the College of Dentistry.
+      </p>
       {/* ADMIN UPLOAD SECTION */}
       {isAdmin && (
         <div className="bg-(--color-surface) p-6 rounded shadow mb-8 border border-gray-200   ">

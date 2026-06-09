@@ -139,7 +139,7 @@ const RoomAssignment = () => {
     );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto relative z-10">
+    <div className="p-6 max-w-5xl mx-auto relative z-10">
       {/* HEADER & SEARCH BAR */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
@@ -147,7 +147,7 @@ const RoomAssignment = () => {
             Room Assignments
           </h1>
           <p className="text-(--color-secondary) mt-1">
-            Find your designated exam and class rooms.
+            Find your designated work area.
           </p>
         </div>
 
