@@ -34,6 +34,7 @@ const AddUser = () => {
   // Users List State
   const [usersList, setUsersList] = useState([]);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   // Fetch Users
   useEffect(() => {
@@ -128,6 +129,16 @@ const AddUser = () => {
     } catch (error) {
       console.error("Failed to delete user data:", error);
       alert("Error removing user access.");
+    }
+  };
+
+  const handleTableScroll = (e) => {
+    const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+    // When the user scrolls within 40px of the bottom, load 10 more records
+    if (scrollHeight - scrollTop <= clientHeight + 40) {
+      setVisibleCount((prevCount) =>
+        Math.min(prevCount + 10, usersList.length),
+      );
     }
   };
 
@@ -280,34 +291,59 @@ const AddUser = () => {
               </h2>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Added scroll listener, vertical max-height configuration, and layout-preserving styles */}
+            <div
+              className="overflow-x-auto max-h-137.5 overflow-y-auto scrollbar-thin"
+              onScroll={handleTableScroll}
+            >
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-100 text-gray-700 text-sm border-b border-gray-200">
-                    <th className="p-4 font-bold">Email Address</th>
-                    <th className="p-4 font-bold">Role</th>
-                    <th className="p-4 font-bold">Date Added</th>
-                    <th className="p-4 font-bold text-center">Actions</th>
+                  <tr className="bg-gray-100 text-gray-700 text-sm border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+                    <th className="p-4 font-bold whitespace-nowrap">
+                      Email Address
+                    </th>
+                    <th className="p-4 font-bold whitespace-nowrap">
+                      Full Name
+                    </th>
+                    <th className="p-4 font-bold whitespace-nowrap">Role</th>
+                    <th className="p-4 font-bold whitespace-nowrap">
+                      Date Added
+                    </th>
+                    <th className="p-4 font-bold text-center whitespace-nowrap">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {usersList.length === 0 ? (
                     <tr>
                       <td
-                        colSpan="4"
+                        colSpan="5"
                         className="p-6 text-center text-gray-500 font-medium"
                       >
                         Loading users...
                       </td>
                     </tr>
                   ) : (
-                    usersList.map((user) => (
+                    usersList.slice(0, visibleCount).map((user) => (
                       <tr
                         key={user.id}
                         className="hover:bg-gray-50 transition-colors"
                       >
-                        <td className="p-4 font-medium text-gray-900">
+                        <td className="p-4 font-medium text-gray-900 break-all">
                           {user.email}
+                        </td>
+                        {/* New Column Displaying Full Name with Fallback */}
+                        <td className="p-4 text-sm font-medium whitespace-nowrap">
+                          {user.firstName ? (
+                            <span className="text-gray-900">
+                              {`${user.firstName} ${user.lastName || ""}`.trim()}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 italic font-normal">
+                              Not set yet
+                            </span>
+                          )}
                         </td>
                         <td className="p-4">
                           <select
@@ -326,7 +362,7 @@ const AddUser = () => {
                             <option value="admin">Admin</option>
                           </select>
                         </td>
-                        <td className="p-4 text-sm text-gray-600 font-medium">
+                        <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
                           {new Date(user.createdAt).toLocaleDateString(
                             undefined,
                             {
@@ -336,7 +372,7 @@ const AddUser = () => {
                             },
                           )}
                         </td>
-                        <td className="p-4 text-center">
+                        <td className="p-4 text-center whitespace-nowrap">
                           {user.email === currentUser?.email ? (
                             <span className="text-xs text-gray-400 font-bold bg-gray-100 px-2 py-1 rounded">
                               Current User

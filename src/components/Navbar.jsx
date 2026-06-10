@@ -217,19 +217,15 @@ export default function Navbar() {
               </div>
             </div>
 
-            {userRole === "admin" && (
-              <NavLink to="/add-user" className={linkClass}>
-                Manage Users
-              </NavLink>
-            )}
-
             {/* Desktop Profile Box Container */}
             <div className="relative ml-4 profile-dropdown-container">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="cursor-pointer px-4 py-1.5 flex items-center justify-center rounded bg-(--color-primary) text-white font-bold hover:opacity-90 transition-opacity focus:outline-none"
               >
-                {firstNameDisplay}
+                <span className="truncate max-w-25 inline-block align-bottom">
+                  {firstNameDisplay}
+                </span>
               </button>
 
               {isProfileOpen && (
@@ -241,6 +237,7 @@ export default function Navbar() {
                     >
                       {displayName}
                     </p>
+
                     {userData?.firstName && (
                       <p
                         className="text-xs text-gray-500 truncate mt-0.5"
@@ -250,6 +247,15 @@ export default function Navbar() {
                       </p>
                     )}
                   </div>
+                  {userRole === "admin" && (
+                    <NavLink
+                      onClick={closeMobileMenu}
+                      to="/add-user"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors font-medium"
+                    >
+                      Manage Users
+                    </NavLink>
+                  )}
                   <div className="py-1">
                     <Link
                       to="/change-password"
@@ -276,7 +282,9 @@ export default function Navbar() {
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="cursor-pointer px-3 py-1 flex items-center justify-center rounded bg-(--color-primary) text-white font-bold text-sm hover:opacity-90 transition-opacity focus:outline-none"
             >
-              {firstNameDisplay}
+              <span className="truncate max-w-25 inline-block align-bottom">
+                {firstNameDisplay}
+              </span>
             </button>
 
             {isProfileOpen && (
@@ -298,6 +306,15 @@ export default function Navbar() {
                   )}
                 </div>
                 <div className="py-1">
+                  {userRole === "admin" && (
+                    <NavLink
+                      onClick={closeMobileMenu}
+                      to="/add-user"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors font-medium"
+                    >
+                      Manage Users
+                    </NavLink>
+                  )}
                   <Link
                     to="/change-password"
                     onClick={closeMobileMenu}

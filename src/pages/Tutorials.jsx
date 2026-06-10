@@ -145,9 +145,7 @@ const Tutorials = () => {
           </span>
         )}
       </div>
-      <p className="text-(--color-secondary)  mb-8">
-        Structure of the College of Dentistry.
-      </p>
+      <p className="text-(--color-secondary)  mb-8">Watch, Learn, Apply.</p>
       {/* ADMIN UPLOAD SECTION */}
       {isAdmin && (
         <div className="bg-(--color-surface) p-6 rounded shadow mb-8 border border-gray-200   ">
