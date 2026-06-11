@@ -153,9 +153,47 @@ export default function Calendar() {
     }
   };
 
-  // UPDATED: Fixed oklch bug using html-to-image
+  // UPDATED: Dynamically scales down the summary section text/layout to fit on one page without cutting off
   const handleDownloadPDF = async () => {
     if (!calendarRef.current) return;
+
+    const summaryEl = calendarRef.current.querySelector(
+      ".summary-events-container",
+    );
+    let originalStyles = {};
+
+    if (summaryEl) {
+      const clientWidth = summaryEl.clientWidth;
+      const scrollWidth = summaryEl.scrollWidth;
+
+      // 1. Back up original layout styles
+      originalStyles = {
+        transform: summaryEl.style.transform,
+        transformOrigin: summaryEl.style.transformOrigin,
+        width: summaryEl.style.width,
+        overflowX: summaryEl.style.overflowX,
+        marginBottom: summaryEl.style.marginBottom,
+      };
+
+      // 2. If it overflows, calculate scale factor to fit everything perfectly
+      if (scrollWidth > clientWidth) {
+        const scaleFactor = clientWidth / scrollWidth;
+
+        // Force container to be as wide as needed, then scale it down to fit visually
+        summaryEl.style.width = `${scrollWidth}px`;
+        summaryEl.style.transform = `scale(${scaleFactor})`;
+        summaryEl.style.transformOrigin = "left top";
+
+        // Pull layout up to eliminate white space gaps created under scaled container
+        const actualHeight = summaryEl.clientHeight;
+        const scaledHeight = actualHeight * scaleFactor;
+        summaryEl.style.marginBottom = `-${actualHeight - scaledHeight}px`;
+      }
+
+      // Hide the scroll bar trace entirely from the snapshot image
+      summaryEl.style.overflowX = "hidden";
+    }
+
     try {
       const filter = (node) => {
         if (node.nodeType === 3) return true;
@@ -169,30 +207,27 @@ export default function Calendar() {
         backgroundColor: "#ffffff",
         filter: filter,
         style: {
-          margin: "0", // Forces removal of any weird margins during capture
+          margin: "0",
         },
       });
 
       const pdf = new jsPDF("p", "mm", "a4");
-
-      // Define a standard margin (e.g., 10mm)
       const margin = 10;
       const pdfPageWidth = pdf.internal.pageSize.getWidth();
-
-      // Calculate width and height accounting for the margins
       const imageWidth = pdfPageWidth - margin * 2;
       const imageHeight =
         (calendarRef.current.offsetHeight * imageWidth) /
         calendarRef.current.offsetWidth;
 
-      // Center the image horizontally and vertically (or just add top margin)
-      const xOffset = margin;
-      const yOffset = margin;
-
-      pdf.addImage(dataUrl, "PNG", xOffset, yOffset, imageWidth, imageHeight);
+      pdf.addImage(dataUrl, "PNG", margin, margin, imageWidth, imageHeight);
       pdf.save(`Calendar_${monthNames[currentMonth]}_${currentYear}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
+    } finally {
+      // 3. Revert back to standard scrolling dashboard styles instantly
+      if (summaryEl) {
+        Object.assign(summaryEl.style, originalStyles);
+      }
     }
   };
 
@@ -259,7 +294,7 @@ export default function Calendar() {
             </p>
           ) : (
             <div
-              className="grid grid-flow-col gap-x-8 gap-y-2 overflow-x-auto justify-start pb-2"
+              className="summary-events-container grid grid-flow-col gap-x-8 gap-y-2 overflow-x-auto justify-start pb-2"
               style={{
                 gridTemplateRows: `repeat(${summaryRowCount}, min-content)`,
               }}
