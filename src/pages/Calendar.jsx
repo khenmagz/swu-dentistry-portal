@@ -8,6 +8,7 @@ import {
   doc,
   query,
   orderBy,
+  updateDoc,
 } from "firebase/firestore";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -20,6 +21,7 @@ import {
   FiAlignLeft,
   FiTrash2,
   FiDownload,
+  FiEdit,
 } from "react-icons/fi";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
@@ -32,6 +34,7 @@ export default function Calendar() {
   const [events, setEvents] = useState([]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Reference for the PDF generator
@@ -135,6 +138,43 @@ export default function Calendar() {
       });
     } catch (error) {
       console.error("Error adding event: ", error);
+    }
+  };
+
+  const openEditModal = () => {
+    setFormData({
+      title: selectedEvent.title,
+      description: selectedEvent.description || "",
+      startDate: selectedEvent.startDate,
+      endDate: selectedEvent.endDate,
+      color: selectedEvent.color || "#4f46e5",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateEvent = async (e) => {
+    e.preventDefault();
+    if (
+      !formData.title ||
+      !formData.startDate ||
+      !formData.endDate ||
+      !selectedEvent
+    )
+      return;
+
+    try {
+      await updateDoc(doc(db, "events", selectedEvent.id), formData);
+      setIsEditModalOpen(false);
+      setSelectedEvent(null); // Close the detail view after successful update
+      setFormData({
+        title: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        color: "#4f46e5",
+      });
+    } catch (error) {
+      console.error("Error updating event: ", error);
     }
   };
 
@@ -274,7 +314,16 @@ export default function Calendar() {
 
             {isAdmin && (
               <button
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={() => {
+                  setFormData({
+                    title: "",
+                    description: "",
+                    startDate: "",
+                    endDate: "",
+                    color: "#4f46e5",
+                  });
+                  setIsAddModalOpen(true);
+                }}
                 className="flex items-center gap-2 bg-[#4A154B] text-white font-bold px-4 py-2 rounded-lg hover:opacity-90 transition shadow"
               >
                 <FiPlus /> Add Event
@@ -504,7 +553,7 @@ export default function Calendar() {
       )}
 
       {/* MODAL 2: Event Details Reader */}
-      {selectedEvent && (
+      {selectedEvent && !isEditModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-sm md:max-w-2xl w-full p-6 md:p-8 relative border border-gray-100 transition-all">
             <button
@@ -543,7 +592,14 @@ export default function Calendar() {
                 </div>
 
                 {isAdmin && (
-                  <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end">
+                  <div className="mt-6 pt-4 border-t border-gray-100 flex justify-end gap-3">
+                    <button
+                      onClick={openEditModal}
+                      className="flex items-center gap-1.5 text-sm font-bold text-blue-500 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition"
+                    >
+                      <FiEdit className="w-4 h-4" />
+                      Edit Event
+                    </button>
                     <button
                       onClick={() => handleDeleteEvent(selectedEvent.id)}
                       className="flex items-center gap-1.5 text-sm font-bold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition"
@@ -555,6 +611,113 @@ export default function Calendar() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: Admin Edit Event Screen */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative border border-gray-100">
+            <button
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <FiEdit className="text-(--color-primary)" /> Edit Event
+            </h3>
+
+            <form onSubmit={handleUpdateEvent} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                  Event Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Final Examination"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30 focus:border-(--color-primary)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                  Brief Description
+                </label>
+                <textarea
+                  rows="2"
+                  placeholder="Details, venue, requirements..."
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30 focus:border-(--color-primary) resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.startDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startDate: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30 focus:border-(--color-primary)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.endDate}
+                    onChange={(e) =>
+                      setFormData({ ...formData, endDate: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary)/30 focus:border-(--color-primary)"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                  Display Theme Color
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) =>
+                      setFormData({ ...formData, color: e.target.value })
+                    }
+                    className="w-10 h-10 border border-gray-300 rounded cursor-pointer p-0.5 bg-white shrink-0"
+                  />
+                  <span className="text-xs font-mono text-gray-400 tracking-wider uppercase">
+                    {formData.color}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-(--color-primary) text-white font-bold py-2.5 rounded-lg hover:opacity-90 transition mt-2 shadow"
+              >
+                Update Schedule
+              </button>
+            </form>
           </div>
         </div>
       )}
